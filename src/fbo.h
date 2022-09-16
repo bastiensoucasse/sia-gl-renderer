@@ -2,8 +2,7 @@
 
 #include "opengl.h"
 
-class FBO
-{
+class FBO {
 public:
     ~FBO();
     void init(int width, int height);
@@ -15,7 +14,6 @@ public:
     int width() const { return _width; }
     int height() const { return _height; }
     GLuint id() { return _fboId; }
-
     GLuint textures[3];
 
 private:
