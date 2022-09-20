@@ -37,11 +37,11 @@ void FBO::init(int width, int height)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         // 5. Attach the texture to FBO color attachment point
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[i], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, i == 0 ? GL_COLOR_ATTACHMENT0 : GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textures[i], 0);
     }
 
     // 6. Generate a renderbuffer to store depth, and then bind it
-    glGenRenderbuffers(1, &(textures[2]));
+    glGenRenderbuffers(1, &textures[2]);
     glBindRenderbuffer(GL_RENDERBUFFER, textures[2]);
 
     // 7. Allocate GPU memory
