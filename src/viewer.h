@@ -8,7 +8,8 @@
 #include "opengl.h"
 #include "shader.h"
 
-class Viewer {
+class Viewer
+{
 public:
     //! Constructor
     Viewer();
@@ -21,7 +22,7 @@ public:
     void updateGUI();
 
     // events
-    void mousePressed(GLFWwindow* window, int button, int action);
+    void mousePressed(GLFWwindow *window, int button, int action);
     void mouseMoved(int x, int y);
     void mouseScroll(double x, double y);
     void keyPressed(int key, int action, int mods);
@@ -37,22 +38,27 @@ private:
     int _winWidth, _winHeight;
 
     Camera _cam;
-    Shader _blinnPrg, _simplePrg, _ambiantPrg, _gbufferPrg;
+    Shader _blinnPrg, _simplePrg, _ambiantPrg, _gbufferPrg, _deferredPrg;
 
     FBO _fbo;
 
+    Mesh *_quad;
+
     // some geometry to render
-    std::vector<Mesh*> _shapes;
+    std::vector<Mesh *> _shapes;
     std::vector<float> _specularCoef;
 
     // geometrical representation of a pointlight
-    std::vector<Mesh*> _pointLights;
+    std::vector<Mesh *> _pointLights;
     std::vector<Eigen::Vector3f> _lightColors;
     float _lightAngle = 0.f, _lastTime;
-    bool _animate { true };
+    bool _animate{true};
 
-    enum ShadingMode { FORWARD,
-        DEFERRED } _shadingMode { FORWARD };
+    enum ShadingMode
+    {
+        FORWARD,
+        DEFERRED
+    } _shadingMode{FORWARD};
 
     // mouse parameters
     Eigen::Vector2f _lastMousePos;

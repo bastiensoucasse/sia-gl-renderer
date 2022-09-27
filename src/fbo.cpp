@@ -28,7 +28,8 @@ void FBO::init(int width, int height)
     // 2. Generate two texture ids in "textures[]"
     glGenTextures(2, textures);
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 2; ++i)
+    {
         // 3. Bind the newly created texture
         glBindTexture(GL_TEXTURE_2D, textures[i]);
 
@@ -51,7 +52,7 @@ void FBO::init(int width, int height)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textures[2]);
 
     // 9. Set the list of draw buffers: the color attachment points
-    GLenum buffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    GLenum buffers[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, buffers);
 
     // 10. Check FBO status
@@ -74,19 +75,21 @@ void FBO::unbind()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void FBO::savePNG(const std::string& name, int i)
+void FBO::savePNG(const std::string &name, int i)
 {
     assert(i < 2);
     glBindTexture(GL_TEXTURE_2D, textures[i]);
-    GLubyte* data = new GLubyte[4 * _width * _height];
+    GLubyte *data = new GLubyte[4 * _width * _height];
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    unsigned char* raw_data = reinterpret_cast<unsigned char*>(data);
+    unsigned char *raw_data = reinterpret_cast<unsigned char *>(data);
 
     /*  mirror image vertically */
-    for (int j = 0; j * 2 < _height; ++j) {
+    for (int j = 0; j * 2 < _height; ++j)
+    {
         int index1 = j * _width * 4;
         int index2 = (_height - 1 - j) * _width * 4;
-        for (int i = _width * 4; i > 0; --i) {
+        for (int i = _width * 4; i > 0; --i)
+        {
             unsigned char temp = raw_data[index1];
             raw_data[index1] = raw_data[index2];
             raw_data[index2] = temp;
@@ -102,7 +105,8 @@ void FBO::savePNG(const std::string& name, int i)
 void FBO::checkFBOAttachment()
 {
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    switch (status) {
+    switch (status)
+    {
     case GL_FRAMEBUFFER_COMPLETE:
         break;
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
