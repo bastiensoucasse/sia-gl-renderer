@@ -48,12 +48,6 @@ void Viewer::init(int w, int h)
     _shapes.push_back(floor);
     _specularCoef.push_back(0.f);
 
-    Mesh *tw = new Mesh();
-    tw->load(DATA_DIR "/models/tw.off");
-    tw->init();
-    _shapes.push_back(tw);
-    _specularCoef.push_back(0.75);
-
     Mesh *sphere = new Mesh();
     sphere->load(DATA_DIR "/models/sphere.off");
     sphere->init();
@@ -61,12 +55,40 @@ void Viewer::init(int w, int h)
     _shapes.push_back(sphere);
     _specularCoef.push_back(0.3f);
 
-    _lightColors.push_back(Vector3f::Constant(0.8f));
+    Mesh *tw = new Mesh();
+    tw->load(DATA_DIR "/models/tw.off");
+    tw->init();
+    _shapes.push_back(tw);
+    _specularCoef.push_back(0.75);
+
     Mesh *light = new Mesh();
     light->createSphere(0.025f);
     light->init();
     light->transformationMatrix() = Translation3f(_cam.sceneCenter() + _cam.sceneRadius() * Vector3f(Eigen::internal::random<float>(), Eigen::internal::random<float>(0.1f, 0.5f), Eigen::internal::random<float>()));
     _pointLights.push_back(light);
+    _lightColors.push_back(Vector3f::Constant(0.8f));
+
+    // Mesh *coloredLights[2];
+    // Vector3f colors[] = { Vector3f(1, 0, 0), Vector3f(0, 0, 1) };
+    // for (int i = 0; i < 2; ++i)
+    // {
+    //     coloredLights[i] = new Mesh();
+    //     coloredLights[i]->createSphere(0.025f);
+    //     coloredLights[i]->init();
+    //     coloredLights[i]->transformationMatrix() = Translation3f(_cam.sceneCenter() + _cam.sceneRadius() * Vector3f(Eigen::internal::random<float>(), Eigen::internal::random<float>(0.1f, 0.5f), Eigen::internal::random<float>()));
+
+    //     _pointLights.push_back(coloredLights[i]);
+    //     _lightColors.push_back(colors[i]);
+    // }
+
+    for (size_t i = 0; i < _shapes.size(); ++i)
+        for (size_t j = 0; j < _pointLights.size(); ++j)
+        {
+            Mesh *shapeShadowVolume = _shapes[i]->computeShadowVolume(_shapes[i]->transformationMatrix().inverse() * _pointLights[j]->transformationMatrix().translation());
+            shapeShadowVolume->init();
+            shapeShadowVolume->transformationMatrix() = _shapes[i]->transformationMatrix();
+            _shadowVolumes.push_back(shapeShadowVolume);
+        }
 
     _lastTime = glfwGetTime();
 
@@ -95,6 +117,7 @@ void Viewer::drawForward()
     glDepthMask(GL_TRUE);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
     _blinnPrg.activate();
 
     glUniformMatrix4fv(_blinnPrg.getUniformLocation("projection_matrix"), 1, GL_FALSE, _cam.computeProjectionMatrix().data());
@@ -118,11 +141,12 @@ void Viewer::drawForward()
     _blinnPrg.deactivate();
 
     drawLights();
+
+    drawShadowVolumes();
 }
 
 void Viewer::drawDeferred()
 {
-    /// Activation du FBO
     _fbo.bind();
 
 #if false
@@ -131,13 +155,9 @@ void Viewer::drawDeferred()
     glBindFragDataLocation(_gbufferPrg.id(), 1, "out_normal");
 #endif
 
-    /// Redéfinition du viewport à la taille du FBO
     glViewport(0, 0, _fbo.width(), _fbo.height());
-
-    /// Vidage les buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    /// Activation du shader G-Buffer
     _gbufferPrg.activate();
 
     glUniformMatrix4fv(_gbufferPrg.getUniformLocation("projection_matrix"), 1, GL_FALSE, _cam.computeProjectionMatrix().data());
@@ -153,7 +173,6 @@ void Viewer::drawDeferred()
         _shapes[i]->draw(_gbufferPrg);
     }
 
-    /// Désactivation du shader G-Buffer
     _gbufferPrg.deactivate();
 
 #if false
@@ -162,14 +181,14 @@ void Viewer::drawDeferred()
     _fbo.savePNG("normals.png", 1);
 #endif
 
-    /// Désactivation du FBO
     _fbo.unbind();
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, _fbo.id());
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, _winWidth, _winHeight, 0, 0, _winWidth, _winHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    /// Activation du shader Deferred
+    glDisable(GL_DEPTH_TEST);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glEnable(GL_BLEND);
+
     _deferredPrg.activate();
 
     for (int i = 0; i < 2; ++i)
@@ -185,15 +204,26 @@ void Viewer::drawDeferred()
     Matrix4f invProjMat = _cam.computeProjectionMatrix().inverse();
     glUniformMatrix4fv(_deferredPrg.getUniformLocation("invProjMat"), 1, GL_FALSE, invProjMat.data());
 
-    Vector4f lightPos;
-    lightPos << _pointLights[0]->transformationMatrix().translation(), 1.f;
-    glUniform4fv(_deferredPrg.getUniformLocation("lightPos"), 1, (_cam.computeViewMatrix() * lightPos).eval().data());
-    glUniform3fv(_deferredPrg.getUniformLocation("lightCol"), 1, _lightColors[0].data());
+    for (size_t i = 0; i < _pointLights.size(); ++i)
+    {
+        Vector4f lightPos;
+        lightPos << _pointLights[i]->transformationMatrix().translation(), 1.f;
+        glUniform4fv(_deferredPrg.getUniformLocation("lightPos"), 1, (_cam.computeViewMatrix() * lightPos).eval().data());
+        glUniform3fv(_deferredPrg.getUniformLocation("lightCol"), 1, _lightColors[i].data());
 
-    _quad->draw(_deferredPrg);
+        _quad->draw(_deferredPrg);
+    }
 
-    /// Désactivation du shader Deferred
     _deferredPrg.deactivate();
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, _fbo.id());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, _winWidth, _winHeight, 0, 0, _winWidth, _winHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    drawLights();
 }
 
 void Viewer::drawLights()
@@ -213,6 +243,31 @@ void Viewer::drawLights()
     }
 
     _simplePrg.deactivate();
+}
+
+void Viewer::drawShadowVolumes()
+{
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    _simplePrg.activate();
+
+    glUniformMatrix4fv(_simplePrg.getUniformLocation("projection_matrix"), 1, GL_FALSE, _cam.computeProjectionMatrix().data());
+    glUniformMatrix4fv(_simplePrg.getUniformLocation("view_matrix"), 1, GL_FALSE, _cam.computeViewMatrix().data());
+
+    for (int i = 0; i < _shadowVolumes.size(); ++i)
+    {
+        Affine3f modelMatrix = _shadowVolumes[i]->transformationMatrix();
+        glUniformMatrix4fv(_simplePrg.getUniformLocation("model_matrix"), 1, GL_FALSE, modelMatrix.data());
+
+        _shadowVolumes[i]->draw(_simplePrg);
+    }
+
+    _simplePrg.deactivate();
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDisable(GL_CULL_FACE);
 }
 
 void Viewer::updateScene()
@@ -247,7 +302,7 @@ void Viewer::loadProgram()
 {
     _blinnPrg.loadFromFiles(DATA_DIR "/shaders/blinn.vert", DATA_DIR "/shaders/blinn.frag");
     _simplePrg.loadFromFiles(DATA_DIR "/shaders/simple.vert", DATA_DIR "/shaders/simple.frag");
-    _ambiantPrg.loadFromFiles(DATA_DIR "/shaders/ambiant.vert", DATA_DIR "/shaders/ambiant.frag");
+    // _ambiantPrg.loadFromFiles(DATA_DIR "/shaders/ambiant.vert", DATA_DIR "/shaders/ambiant.frag");
     _gbufferPrg.loadFromFiles(DATA_DIR "/shaders/gbuffer.vert", DATA_DIR "/shaders/gbuffer.frag");
     _deferredPrg.loadFromFiles(DATA_DIR "/shaders/deferred.vert", DATA_DIR "/shaders/deferred.frag");
 }

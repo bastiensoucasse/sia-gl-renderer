@@ -33,6 +33,7 @@ protected:
     void drawForward();
     void drawDeferred();
     void drawLights();
+    void drawShadowVolumes();
 
 private:
     int _winWidth, _winHeight;
@@ -45,14 +46,14 @@ private:
     Mesh *_quad;
 
     // some geometry to render
-    std::vector<Mesh *> _shapes;
+    std::vector<Mesh *> _shapes, _shadowVolumes;
     std::vector<float> _specularCoef;
 
     // geometrical representation of a pointlight
     std::vector<Mesh *> _pointLights;
     std::vector<Eigen::Vector3f> _lightColors;
     float _lightAngle = 0.f, _lastTime;
-    bool _animate{true};
+    bool _animate{false};
 
     enum ShadingMode
     {

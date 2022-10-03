@@ -14,14 +14,14 @@ Un attribut de type `FBO` a été ajouté à la classe `Viewer` et initialisé d
 
 Les images sauvegardées par la méthode `savePNG` témoignent de problèmes dans le code, elles ne correspondent pas à celles attendues.
 
-Couleurs : ![colors-error](images/colors-error.png)
+Couleurs : ![colors-error](images/colors-error.png)
 
-Normales : ![normals-error](images/normals-error.png)
+Normales : ![normals-error](images/normals-error.png)
 
 Le problème venait du fait que lors de l'initialisation du FBO, le color attachment 0 était utilisé pour les deux textures (couleurs et normales). En adaptant de manière à automatiser l'indice utilisé, les images furent alors correctes.
 
-Couleurs : ![colors](images/colors.png)
-Normales : ![normals](images/normals.png)
+Couleurs : ![colors](images/colors.png)
+Normales : ![normals](images/normals.png)
 
 ### 1.2. Lightning
 
@@ -42,6 +42,38 @@ Le problème venait du fait que la profondeur était mal récupérée. En effet,
 Cette fois, l'éclairage est bien plus cohérent masi reste différent de celui du Forward Shading. Une erreur a été commise dans le Deferred Fragment Shader : le vecteur `l` a été normalisé avant sont appel dans la méthode `phong` et son utilisation pour le paramètre `lightCol` n'est alors plus valable. En rétablissant la normalisation uniquement là où nécessaire, on obtient finalement une image équivalente.
 
 ![deferred](images/deferred.gif)
+
+Il reste encore à appliquer cette méthode d'éclaire à toute source lumineuse. En ajoutant deux lumières ponctuelles de couleur dans la scène (`#PhilipsHue`), il est alors possible de travailler sur le rendu *GL_BLEND*, c'est-à-dire le mélange des couleurs émises par les différentes lumières.
+
+Pour cela, le calcul de l'éclairage et le dessin du quad ont été réalisés au sein d'une boucle itérant sur chaque source lumineuse, et l'activation du mode *GL_BLEND* devrait permettre de mélanger les couleurs des pixels. Cependant, le résultat fût une image devenant progressivement complètement blanche.
+
+![deferred-multiple-error-1](images/deferred-multiple-error-1.gif)
+
+En effet, il manquait un appel à `glClear` permettant de remettre à zéro l'écran et n'appliquer le blend que sur les pixels de la frame actuelle (sans ça, les couleurs s'incrémentent à l'infini et dépasse la valeur maximale, d'où l'image blanche).
+
+![deferred-multiple-error-1](images/deferred-multiple-error-2.gif)
+
+Le dernier problème, persistant depuis le début de ce projet si vous avez l'œuil, est le fait qu'il n'y a pas les sources lumineuses de déssinées. Il s'agissait d'un mauvais placement du transfert des données entre les buffers. En le déplaçant juste avant l'appel à `drawLights`, on peut visualiser les sources lumineuses également.
+
+![deferred-multiple](images/deferred-multiple.gif)
+
+## 2. Shadow Volume
+
+### 2.1. Building
+
+Pour construire le volume d'ombre, la méthode `computeShadowVolume` a été implementée, utilisant deux nouvelles méthodes utilitaires : `getShadowVolumeQuadPoints` qui retourne les coordonnées des quatre sommets du quad à créer à partir d'une arête du maillage, et `is_enlightened` qui détermine si une face est éclairée ou non.
+
+La première initialisation met en évidence une erreur de segmentation due au fait que la propriété de sommets `v:position` n'avait pas été initialisée.
+
+Une fois l'initalisation fonctionnelle, il est alors possible de dessiner le volume d'ombre construit.
+
+![shadow-volume-visualization-before-transformation](images/shadow-volume-visualization-before-transformation.png)
+
+En appliquant la transformation de la sphère au volume d'ombre, ainsi qu'en calculant la position de la lumière en espace objet, il est alors possible de résoudre le décalage du volume d'ombre appliqué aux objets transformés dans la scène. 
+
+![shadow-volume-visualization-after-transformation](images/shadow-volume-visualization-after-transformation.png)
+
+![shadow-volume-visualization-after-transformation-global](images/shadow-volume-visualization-after-transformation-global.png)
 
 
 <style>
