@@ -68,18 +68,18 @@ void Viewer::init(int w, int h)
     _pointLights.push_back(light);
     _lightColors.push_back(Vector3f::Constant(0.8f));
 
-    // Mesh *coloredLights[2];
-    // Vector3f colors[] = { Vector3f(1, 0, 0), Vector3f(0, 0, 1) };
-    // for (int i = 0; i < 2; ++i)
-    // {
-    //     coloredLights[i] = new Mesh();
-    //     coloredLights[i]->createSphere(0.025f);
-    //     coloredLights[i]->init();
-    //     coloredLights[i]->transformationMatrix() = Translation3f(_cam.sceneCenter() + _cam.sceneRadius() * Vector3f(Eigen::internal::random<float>(), Eigen::internal::random<float>(0.1f, 0.5f), Eigen::internal::random<float>()));
+    Mesh *coloredLights[2];
+    Vector3f colors[] = {Vector3f(1, 0, 0), Vector3f(0, 0, 1)};
+    for (int i = 0; i < 2; ++i)
+    {
+        coloredLights[i] = new Mesh();
+        coloredLights[i]->createSphere(0.025f);
+        coloredLights[i]->init();
+        coloredLights[i]->transformationMatrix() = Translation3f(_cam.sceneCenter() + _cam.sceneRadius() * Vector3f(Eigen::internal::random<float>(), Eigen::internal::random<float>(0.1f, 0.5f), Eigen::internal::random<float>()));
 
-    //     _pointLights.push_back(coloredLights[i]);
-    //     _lightColors.push_back(colors[i]);
-    // }
+        _pointLights.push_back(coloredLights[i]);
+        _lightColors.push_back(colors[i]);
+    }
 
     for (size_t i = 0; i < _shapes.size(); ++i)
         for (size_t j = 0; j < _pointLights.size(); ++j)
@@ -140,9 +140,10 @@ void Viewer::drawForward()
 
     _blinnPrg.deactivate();
 
-    drawLights();
+    glDisable(GL_BLEND);
 
-    drawShadowVolumes();
+    drawLights();
+    // drawShadowVolumes();
 }
 
 void Viewer::drawDeferred()
@@ -224,6 +225,7 @@ void Viewer::drawDeferred()
     glBlitFramebuffer(0, 0, _winWidth, _winHeight, 0, 0, _winWidth, _winHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     drawLights();
+    // drawShadowVolumes();
 }
 
 void Viewer::drawLights()
@@ -248,7 +250,7 @@ void Viewer::drawLights()
 void Viewer::drawShadowVolumes()
 {
     glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);    
+    glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     _simplePrg.activate();
