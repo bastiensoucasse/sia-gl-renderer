@@ -76,22 +76,3 @@ En appliquant la transformation de la sphère au volume d'ombre, ainsi qu'en cal
 ![shadow-volume-visualization-after-transformation](images/shadow-volume-visualization-after-transformation.png)
 
 ![shadow-volume-visualization-after-transformation-global](images/shadow-volume-visualization-after-transformation-global.png)
-
-
-<style>
-    body {
-        width: 600px;
-        margin: auto;
-    }
-
-    p {
-        text-align: justify;
-    }
-
-    img {
-        display: block;
-        border-radius: 12px;
-        box-shadow: 12px;
-        margin: 12px 0 24px 0;
-    }
-</style>
